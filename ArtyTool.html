@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <title>ArtyTool</title>
+    <script>
+function getBearingFromSourceToDestination(sourceX, sourceY, destX, destY) {
+    const deltaX = destX - sourceX;
+    const deltaY = destY - sourceY;
+
+    const startingBearing = deltaX >= 0 ? 1600 : 4800;
+
+    const arctanOfAbsoluteDeltaRatio = radiansToMils(Math.atan(Math.abs(deltaY / deltaX)));
+
+    let resultingBearing = startingBearing;
+    if (haveSameSign(deltaX, deltaY)) {
+        resultingBearing -= arctanOfAbsoluteDeltaRatio;
+    } else {
+        resultingBearing += arctanOfAbsoluteDeltaRatio;
+    }
+
+    return resultingBearing;
+}
+
+function getDistanceFromSourceToDestination(sourceX, sourceY, destX, destY) {
+    const deltaX = destX - sourceX;
+    const deltaY = destY - sourceY;
+
+    return Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+}
+
+function haveSameSign(first, second) {
+    return (first >= 0 && second >= 0) || (first < 0 && second < 0);
+}
+
+function radiansToMils(radians)
+{
+    return 3200 / Math.PI * radians;
+}
+
+function milsToRadians(mils)
+{
+    return mils * Math.PI / 3200;
+}
+
+function updateResults() {
+    const sourceX = parseInt(document.getElementById("sourceX").value);
+    const sourceY = parseInt(document.getElementById("sourceY").value);
+    const destX = parseInt(document.getElementById("destX").value);
+    const destY = parseInt(document.getElementById("destY").value);
+    const deltaX = destX - sourceX;
+    const deltaY = destY - sourceY
+    
+    document.getElementById("deltaX").value = deltaX;
+    document.getElementById("deltaY").value = deltaY;
+    document.getElementById("bearing").value = getBearingFromSourceToDestination(sourceX, sourceY, destX, destY).toFixed(1);
+    document.getElementById("distance").value = getDistanceFromSourceToDestination(sourceX, sourceY, destX, destY).toFixed(1);
+}
+
+function updatePointWithBearingAndDist() {
+    const sourceX = parseInt(document.getElementById("sourceX2").value);
+    const sourceY = parseInt(document.getElementById("sourceY2").value);
+    const bearing = Number(document.getElementById("bearing2").value);
+    const distance = Number(document.getElementById("distance2").value);
+    const deltaX = Math.sin(milsToRadians(bearing)) * distance;
+    const deltaY = Math.cos(milsToRadians(bearing)) * distance;
+    
+    document.getElementById("deltaX2").value = deltaX.toFixed(1);
+    document.getElementById("deltaY2").value = deltaY.toFixed(1);
+    document.getElementById("destX2").value = (sourceX + deltaX).toFixed(0).padStart(5, '0');
+    document.getElementById("destY2").value = (sourceY + deltaY).toFixed(0).padStart(5, '0');
+}
+
+function updateAngleOfSight() {
+    const altDiff = Number(document.getElementById("altDiff").value);
+    const distance = Number(document.getElementById("distance3").value);
+    const angleOfSight = radiansToMils(Math.atan(altDiff / distance));
+    
+    document.getElementById("angleOfSight").value = angleOfSight.toFixed(1);
+}
+
+function updateAltitude() {
+    const angleOfSight = Number(document.getElementById("angleOfSight2").value);
+    const distance = Number(document.getElementById("distance4").value);
+    const altDiff = Math.tan(milsToRadians(angleOfSight)) * distance;
+    
+    document.getElementById("altDiff2").value = altDiff.toFixed(1);
+}
+
+function updateDegrees() {
+    const mils = Number(document.getElementById("mils").value);
+    
+    document.getElementById("degrees").value = (mils * 0.05625).toFixed(1);
+}
+
+function updateMils() {
+    const degrees = Number(document.getElementById("degrees").value);
+    
+    document.getElementById("mils").value = (degrees / 0.05625).toFixed(1);
+}
+
+function updateAngle() {
+    const centerOfArc = parseInt(document.getElementById("centerOfArc").value);
+    const bearing = Number(document.getElementById("bearing3").value);
+    let angle = bearing - 3200 - centerOfArc;
+    
+    if (angle < 0) {
+        angle += 6400;
+    }
+    
+    document.getElementById("angle").value = angle.toFixed(1);
+}
+
+function updateBearing() {
+    const centerOfArc = parseInt(document.getElementById("centerOfArc").value);
+    const angle = Number(document.getElementById("angle").value);
+    let bearing = angle + 3200 + centerOfArc;
+    
+    if (bearing >= 6400) {
+        bearing -= 6400;
+    }
+    
+    document.getElementById("bearing3").value = bearing.toFixed(1);
+}
+    </script>
+  </head>
+  <body style="background-color:black; color:white">
+    <h2 style="text-align: center;">Two grid points</h2>
+    <table style="margin-left: auto; margin-right: auto">
+      <tr>
+        <td>Source:</td>
+        <td><input id="sourceX" type="text" value="00000" style="text-align:center" onchange="updateResults();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();" style="font-size:33vw"></td>
+        <td><input id="sourceY" type="text" value="00000" style="text-align:center" onchange="updateResults();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();" style="font-size:33vw"></td>
+      </tr>
+      <tr>
+        <td>Destination:</td>
+        <td><input id="destX" type="text" value="00000" style="text-align:center" onchange="updateResults();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();"></td>
+        <td><input id="destY" type="text" value="00000" style="text-align:center" onchange="updateResults();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();"></td>
+      </tr>
+      <tr>
+        <td>Difference:</td>
+        <td><input id="deltaX" type="text" value="-" readonly style="text-align:center"></td>
+        <td><input id="deltaY" type="text" value="-" readonly style="text-align:center"></td>
+      </tr>
+      <tr><td> </td><td> </td><td> </td></tr>
+      <tr><td> </td><td> </td><td> </td></tr>
+      <tr>
+        <td>Bearing:</td>
+        <td><input id="bearing" type="text" value="-" readonly style="text-align:center; background-color:black; color:white; border:none"></td>
+      </tr>
+      <tr>
+        <td>Distance:</td>
+        <td><input id="distance" type="text" value="-" readonly style="text-align:center; background-color:black; color:white; border:none"></td>
+      </tr>
+    </table>
+    <br>
+    <hr>
+    <h2 style="text-align: center;">Grid point with bearing and distance</h2>
+    <table style="margin-left: auto; margin-right: auto">
+      <tr>
+        <td>Source:</td>
+        <td><input id="sourceX2" type="text" value="00000" style="text-align:center" onchange="updatePointWithBearingAndDist();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();" style="font-size:33vw"></td>
+        <td><input id="sourceY2" type="text" value="00000" style="text-align:center" onchange="updatePointWithBearingAndDist();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();" style="font-size:33vw"></td>
+      </tr>
+      <tr>
+        <td>Bearing:</td>
+        <td><input id="bearing2" type="text" value="0000" style="text-align:center" onchange="updatePointWithBearingAndDist();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();" style="font-size:33vw"></td>
+      </tr>
+      <tr>
+        <td>Distance:</td>
+        <td><input id="distance2" type="text" value="0" style="text-align:center" onchange="updatePointWithBearingAndDist();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();" style="font-size:33vw"></td>
+      </tr>
+      <tr><td> </td><td> </td><td> </td></tr>
+      <tr><td> </td><td> </td><td> </td></tr>
+      <tr>
+        <td>Difference:</td>
+        <td><input id="deltaX2" type="text" value="-" readonly style="text-align:center; background-color:black; color:white; border:none"></td>
+        <td><input id="deltaY2" type="text" value="-" readonly style="text-align:center; background-color:black; color:white; border:none"></td>
+      </tr>
+      <tr>
+        <td>Destination:</td>
+        <td><input id="destX2" type="text" value="-" readonly style="text-align:center; background-color:black; color:white; border:none"></td>
+        <td><input id="destY2" type="text" value="-" readonly style="text-align:center; background-color:black; color:white; border:none"></td>
+      </tr>
+    </table>
+    <br>
+    <hr>
+    <h2 style="text-align: center;">Angle of sight from difference in altitude</h2>
+    <table style="margin-left: auto; margin-right: auto">
+      <tr>
+        <td>Difference in altitude:</td>
+        <td><input id="altDiff" type="text" value="0" style="text-align:center" onchange="updateAngleOfSight();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();" style="font-size:33vw"></td>
+      </tr>
+      <tr>
+        <td>Distance:</td>
+        <td><input id="distance3" type="text" value="0" style="text-align:center" onchange="updateAngleOfSight();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();" style="font-size:33vw"></td>
+      </tr>
+      <tr>
+        <td>Angle of sight:</td>
+        <td><input id="angleOfSight" type="text" value="-" readonly style="text-align:center; background-color:black; color:white; border:none"></td>
+      </tr>
+    </table>
+    <br>
+    <hr>
+    <h2 style="text-align: center;">Difference in altitude from angle of sight</h2>
+    <table style="margin-left: auto; margin-right: auto">
+      <table style="margin-left: auto; margin-right: auto">
+        <tr>
+          <td>Angle of sight:</td>
+          <td><input id="angleOfSight2" type="text" value="0" style="text-align:center" onchange="updateAltitude();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();" style="font-size:33vw"></td>
+        </tr>
+        <tr>
+          <td>Distance:</td>
+          <td><input id="distance4" type="text" value="0" style="text-align:center" onchange="updateAltitude();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();" style="font-size:33vw"></td>
+        </tr>
+        <tr>
+          <td>Difference in altitude:</td>
+          <td><input id="altDiff2" type="text" value="-" readonly style="text-align:center; background-color:black; color:white; border:none"></td>
+        </tr>
+      </table>
+    </table>
+    <br>
+    <hr>
+    <h2 style="text-align: center;">Mils / degrees conversion</h2>
+    <table style="margin-left: auto; margin-right: auto">
+      <tr>
+        <td><input id="mils" type="text" value="0" style="text-align:center" onchange="updateDegrees();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();" style="font-size:33vw"></td>
+        <td>mils =</td>
+        <td><input id="degrees" type="text" value="0" style="text-align:center" onchange="updateMils();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();" style="font-size:33vw"></td>
+        <td>degrees</td>
+      </tr>
+    </table>
+    <br>
+    <hr>
+    <h2 style="text-align: center;">Angle / bearing conversion</h2>
+    <table style="margin-left: auto; margin-right: auto">
+      <tr>
+        <td>C of A:</td>
+        <td><input id="centerOfArc" type="text" value="0" style="text-align:center" onchange="updateBearing();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();" style="font-size:33vw"></td>
+      </tr>
+      <tr>
+        <td>Bearing:</td>
+        <td><input id="bearing3" type="text" value="0" style="text-align:center" onchange="updateAngle();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();" style="font-size:33vw"></td>
+      </tr>
+      <tr>
+        <td>Angle:</td>
+        <td><input id="angle" type="text" value="3200" style="text-align:center" onchange="updateBearing();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();" style="font-size:33vw"></td>
+      </tr>
+    </table>
+    <br>
+    <hr>
+    <h2 style="text-align: center;">CP & FC plotter</h2>
+    <table style="margin-left: auto; margin-right: auto">
+      <tr>
+        <!--CofA, 6 x gun { bearing, distance }-->
+        <td>Coming soon</td>
+      </tr>
+    </table>
+    <br>
+    <hr>
+    <h2 style="text-align: center;">Triangle solver</h2>
+    <table style="margin-left: auto; margin-right: auto">
+      <tr>
+        <!--adj, hyp, opp, A, B. C, Solve, Reset-->
+        <td>Coming soon</td>
+      </tr>
+    </table>
+    <br>
+  </body>
+</html>
