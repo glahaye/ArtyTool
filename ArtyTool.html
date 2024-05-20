@@ -105,7 +105,11 @@ function updateAngle() {
     let angle = bearing - 3200 - centerOfArc;
     
     if (angle < 0) {
-        angle += 6400;
+      angle += 6400;
+    }
+    
+    if (angle > 6400) {
+      angle -= 6400;
     }
     
     document.getElementById("angle").value = angle.toFixed(1);
@@ -116,41 +120,122 @@ function updateBearing() {
     const angle = Number(document.getElementById("angle").value);
     let bearing = angle + 3200 + centerOfArc;
     
+    if (bearing < 0) {
+      bearing += 6400;
+    }
+    
     if (bearing >= 6400) {
-        bearing -= 6400;
+      bearing -= 6400;
     }
     
     document.getElementById("bearing3").value = bearing.toFixed(1);
 }
+
+function updateCpfc() {
+  const ScaleFactor = 0.9; // Scale down circle so that guns on
+                           // its circumference don't get clipped
+                           // out of canvas
+  
+  let guns = [];
+  
+  for (let i = 1; i <= 6; i++) {
+    const direction = Number(document.getElementById("direction" + i).value);
+    const distance = Number(document.getElementById("cpfcDist" + i).value);
+    guns.push({direction: direction, distance: distance});
+  }
+
+  const maxDistance = Math.max(...guns.map(gun => gun.distance));
+  
+  let graphMultFactor = Math.ceil(maxDistance / 100);
+  
+  if (graphMultFactor < 1) {
+    graphMultFactor = 1;
+  }
+  
+  document.getElementById("multFactor").value = graphMultFactor;
+  document.getElementById("smallSquareSize").value = (2 * graphMultFactor).toString() + " m";
+  
+  const canvas = document.getElementById("cpfcCanvas");
+  const dpi = window.devicePixelRatio ?? 1;
+  const ctx = canvas.getContext("2d");
+  const diameter = Math.min(ctx.canvas.width, ctx.canvas.height);
+  const radius = diameter / 2;
+  
+  fixDpi(canvas, dpi);
+  
+  ctx.beginPath();
+  ctx.arc(ctx.canvas.width / 2, ctx.canvas.height / 2, radius * ScaleFactor, 0, 2 * Math.PI);
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = "white"
+  ctx.stroke();
+  
+  ctx.beginPath();
+  ctx.arc(ctx.canvas.width / 2, ctx.canvas.height / 2, 12, 0, 2 * Math.PI);
+  ctx.fillStyle = "white";
+  ctx.fill();
+  ctx.strokeStyle = "white"
+  ctx.stroke();
+  
+  for (gun of guns) {
+    if (gun.distance >= 1) {
+     const x = Math.sin(milsToRadians(gun.direction)) * gun.distance * radius * ScaleFactor / (graphMultFactor * 100);
+     const y = Math.cos(milsToRadians(gun.direction)) * gun.distance * radius * ScaleFactor / (graphMultFactor * 100);
+     
+     ctx.beginPath();
+     ctx.arc(ctx.canvas.width / 2 + x, ctx.canvas.height / 2 - y, radius / 24, 0, 2 * Math.PI);
+     ctx.fillStyle = "green";
+     ctx.fill();
+     ctx.strokeStyle = "green"
+     ctx.stroke();
+    }
+  }
+}
+
+function fixDpi(canvas, dpi) {
+  // Get CSS width and height
+  // The + prefix casts it to an integer
+  // The slice method gets rid of "px"
+  const styleWidth = +getComputedStyle(canvas).getPropertyValue("width").slice(0, -2);
+  const styleHeight = +getComputedStyle(canvas).getPropertyValue("height").slice(0, -2);
+
+  // Scale the canvas
+  canvas.setAttribute('width', styleWidth * dpi);
+  canvas.setAttribute('height', styleHeight * dpi);
+}
+
+function updateCpfcHack() {
+  updateCpfc();
+  updateCpfc();
+}
     </script>
   </head>
-  <body style="background-color:black; color:white">
+  <body style="background-color:black; color:white;" onload="javascript:updateCpfcHack()">
     <h2 style="text-align: center;">Two grid points</h2>
     <table style="margin-left: auto; margin-right: auto">
       <tr>
         <td>Source:</td>
-        <td><input id="sourceX" type="text" value="00000" style="text-align:center" onchange="updateResults();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();" style="font-size:33vw"></td>
-        <td><input id="sourceY" type="text" value="00000" style="text-align:center" onchange="updateResults();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();" style="font-size:33vw"></td>
+        <td><input id="sourceX" size="10" type="text" inputmode="numeric" value="00000" style="text-align:center" onchange="updateResults();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();"></td>
+        <td><input id="sourceY" size="10" type="text" inputmode="numeric" value="00000" style="text-align:center" onchange="updateResults();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();"></td>
       </tr>
       <tr>
         <td>Destination:</td>
-        <td><input id="destX" type="text" value="00000" style="text-align:center" onchange="updateResults();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();"></td>
-        <td><input id="destY" type="text" value="00000" style="text-align:center" onchange="updateResults();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();"></td>
+        <td><input id="destX" size="10" type="text" inputmode="numeric" value="00000" style="text-align:center" onchange="updateResults();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();"></td>
+        <td><input id="destY" size="10" type="text" inputmode="numeric" value="00000" style="text-align:center" onchange="updateResults();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();"></td>
       </tr>
       <tr>
         <td>Difference:</td>
-        <td><input id="deltaX" type="text" value="-" readonly style="text-align:center"></td>
-        <td><input id="deltaY" type="text" value="-" readonly style="text-align:center"></td>
+        <td><input id="deltaX" size="10" type="text" value="-" readonly style="text-align:center; background-color:black; color:white; border:none"></td>
+        <td><input id="deltaY" size="10" type="text" value="-" readonly style="text-align:center; background-color:black; color:white; border:none"></td>
       </tr>
       <tr><td> </td><td> </td><td> </td></tr>
       <tr><td> </td><td> </td><td> </td></tr>
       <tr>
         <td>Bearing:</td>
-        <td><input id="bearing" type="text" value="-" readonly style="text-align:center; background-color:black; color:white; border:none"></td>
+        <td><input id="bearing" size="10" type="text" value="-" readonly style="text-align:center; background-color:black; color:white; border:none"></td>
       </tr>
       <tr>
         <td>Distance:</td>
-        <td><input id="distance" type="text" value="-" readonly style="text-align:center; background-color:black; color:white; border:none"></td>
+        <td><input id="distance" size="10" type="text" value="-" readonly style="text-align:center; background-color:black; color:white; border:none"></td>
       </tr>
     </table>
     <br>
@@ -159,28 +244,28 @@ function updateBearing() {
     <table style="margin-left: auto; margin-right: auto">
       <tr>
         <td>Source:</td>
-        <td><input id="sourceX2" type="text" value="00000" style="text-align:center" onchange="updatePointWithBearingAndDist();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();" style="font-size:33vw"></td>
-        <td><input id="sourceY2" type="text" value="00000" style="text-align:center" onchange="updatePointWithBearingAndDist();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();" style="font-size:33vw"></td>
+        <td><input id="sourceX2" size="10" type="text" inputmode="numeric" value="00000" style="text-align:center" onchange="updatePointWithBearingAndDist();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();"></td>
+        <td><input id="sourceY2" size="10" type="text" inputmode="numeric" value="00000" style="text-align:center" onchange="updatePointWithBearingAndDist();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();"></td>
       </tr>
       <tr>
         <td>Bearing:</td>
-        <td><input id="bearing2" type="text" value="0000" style="text-align:center" onchange="updatePointWithBearingAndDist();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();" style="font-size:33vw"></td>
+        <td><input id="bearing2" size="10" type="text" inputmode="decimal" value="0000" style="text-align:center" onchange="updatePointWithBearingAndDist();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();"></td>
       </tr>
       <tr>
         <td>Distance:</td>
-        <td><input id="distance2" type="text" value="0" style="text-align:center" onchange="updatePointWithBearingAndDist();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();" style="font-size:33vw"></td>
+        <td><input id="distance2" size="10" type="text" inputmode="decimal" value="0" style="text-align:center" onchange="updatePointWithBearingAndDist();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();"></td>
       </tr>
       <tr><td> </td><td> </td><td> </td></tr>
       <tr><td> </td><td> </td><td> </td></tr>
       <tr>
         <td>Difference:</td>
-        <td><input id="deltaX2" type="text" value="-" readonly style="text-align:center; background-color:black; color:white; border:none"></td>
-        <td><input id="deltaY2" type="text" value="-" readonly style="text-align:center; background-color:black; color:white; border:none"></td>
+        <td><input id="deltaX2" size="10" type="text" value="-" readonly style="text-align:center; background-color:black; color:white; border:none"></td>
+        <td><input id="deltaY2" size="10" type="text" value="-" readonly style="text-align:center; background-color:black; color:white; border:none"></td>
       </tr>
       <tr>
         <td>Destination:</td>
-        <td><input id="destX2" type="text" value="-" readonly style="text-align:center; background-color:black; color:white; border:none"></td>
-        <td><input id="destY2" type="text" value="-" readonly style="text-align:center; background-color:black; color:white; border:none"></td>
+        <td><input id="destX2" size="10" type="text" value="-" readonly style="text-align:center; background-color:black; color:white; border:none"></td>
+        <td><input id="destY2" size="10" type="text" value="-" readonly style="text-align:center; background-color:black; color:white; border:none"></td>
       </tr>
     </table>
     <br>
@@ -189,15 +274,15 @@ function updateBearing() {
     <table style="margin-left: auto; margin-right: auto">
       <tr>
         <td>Difference in altitude:</td>
-        <td><input id="altDiff" type="text" value="0" style="text-align:center" onchange="updateAngleOfSight();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();" style="font-size:33vw"></td>
+        <td><input id="altDiff" size="10" type="text" inputmode="decimal" value="0" style="text-align:center" onchange="updateAngleOfSight();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();"></td>
       </tr>
       <tr>
         <td>Distance:</td>
-        <td><input id="distance3" type="text" value="0" style="text-align:center" onchange="updateAngleOfSight();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();" style="font-size:33vw"></td>
+        <td><input id="distance3" size="10" type="text" inputmode="decimal" value="0" style="text-align:center" onchange="updateAngleOfSight();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();"></td>
       </tr>
       <tr>
         <td>Angle of sight:</td>
-        <td><input id="angleOfSight" type="text" value="-" readonly style="text-align:center; background-color:black; color:white; border:none"></td>
+        <td><input id="angleOfSight" size="10" type="text" value="-" readonly style="text-align:center; background-color:black; color:white; border:none"></td>
       </tr>
     </table>
     <br>
@@ -207,15 +292,15 @@ function updateBearing() {
       <table style="margin-left: auto; margin-right: auto">
         <tr>
           <td>Angle of sight:</td>
-          <td><input id="angleOfSight2" type="text" value="0" style="text-align:center" onchange="updateAltitude();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();" style="font-size:33vw"></td>
+          <td><input id="angleOfSight2" size="10" type="text" inputmode="decimal" value="0" style="text-align:center" onchange="updateAltitude();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();"></td>
         </tr>
         <tr>
           <td>Distance:</td>
-          <td><input id="distance4" type="text" value="0" style="text-align:center" onchange="updateAltitude();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();" style="font-size:33vw"></td>
+          <td><input id="distance4" size="10" type="text" inputmode="decimal" value="0" style="text-align:center" onchange="updateAltitude();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();"></td>
         </tr>
         <tr>
           <td>Difference in altitude:</td>
-          <td><input id="altDiff2" type="text" value="-" readonly style="text-align:center; background-color:black; color:white; border:none"></td>
+          <td><input id="altDiff2" size="10" type="text" value="-" readonly style="text-align:center; background-color:black; color:white; border:none"></td>
         </tr>
       </table>
     </table>
@@ -224,9 +309,9 @@ function updateBearing() {
     <h2 style="text-align: center;">Mils / degrees conversion</h2>
     <table style="margin-left: auto; margin-right: auto">
       <tr>
-        <td><input id="mils" type="text" value="0" style="text-align:center" onchange="updateDegrees();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();" style="font-size:33vw"></td>
+        <td><input id="mils" size=10 type="text" inputmode="decimal" value="0" style="text-align:center" onchange="updateDegrees();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();"></td>
         <td>mils =</td>
-        <td><input id="degrees" type="text" value="0" style="text-align:center" onchange="updateMils();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();" style="font-size:33vw"></td>
+        <td><input id="degrees" size=10 type="text" inputmode="decimal" value="0" style="text-align:center" onchange="updateMils();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();"></td>
         <td>degrees</td>
       </tr>
     </table>
@@ -236,15 +321,15 @@ function updateBearing() {
     <table style="margin-left: auto; margin-right: auto">
       <tr>
         <td>C of A:</td>
-        <td><input id="centerOfArc" type="text" value="0" style="text-align:center" onchange="updateBearing();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();" style="font-size:33vw"></td>
+        <td><input id="centerOfArc" size="10" type="text" inputmode="decimal" value="0" style="text-align:center" onchange="updateBearing();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();"></td>
       </tr>
       <tr>
         <td>Bearing:</td>
-        <td><input id="bearing3" type="text" value="0" style="text-align:center" onchange="updateAngle();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();" style="font-size:33vw"></td>
+        <td><input id="bearing3" size="10" type="text" inputmode="decimal" value="0000" style="text-align:center" onchange="updateAngle();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();"></td>
       </tr>
       <tr>
         <td>Angle:</td>
-        <td><input id="angle" type="text" value="3200" style="text-align:center" onchange="updateBearing();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();" style="font-size:33vw"></td>
+        <td><input id="angle" size="10" type="text" inputmode="decimal" value="3200" style="text-align:center" onchange="updateBearing();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();"></td>
       </tr>
     </table>
     <br>
@@ -252,10 +337,45 @@ function updateBearing() {
     <h2 style="text-align: center;">CP & FC plotter</h2>
     <table style="margin-left: auto; margin-right: auto">
       <tr>
-        <!--CofA, 6 x gun { bearing, distance }-->
-        <td>Coming soon</td>
+        <td></td>
+        <td style="text-align:center">Gun 1</td>
+        <td style="text-align:center">Gun 2</td>
+        <td style="text-align:center">Gun 3</td>
+        <td style="text-align:center">Gun 4</td>
+        <td style="text-align:center">Gun 5</td>
+        <td style="text-align:center">Gun 6</td>
+      </tr>
+      <tr>
+        <td>Direction:</td>
+        <td><input id="direction1" size=10 type="text" inputmode="decimal" value="0000" style="text-align:center" onchange="updateCpfc();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();"></td>
+        <td><input id="direction2" size=10 type="text" inputmode="decimal" value="0000" style="text-align:center" onchange="updateCpfc();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();"></td>
+        <td><input id="direction3" size=10 type="text" inputmode="decimal" value="0000" style="text-align:center" onchange="updateCpfc();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();"></td>
+        <td><input id="direction4" size=10 type="text" inputmode="decimal" value="0000" style="text-align:center" onchange="updateCpfc();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();"></td>
+        <td><input id="direction5" size=10 type="text" inputmode="decimal" value="0000" style="text-align:center" onchange="updateCpfc();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();"></td>
+        <td><input id="direction6" size=10 type="text" inputmode="decimal" value="0000" style="text-align:center" onchange="updateCpfc();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();"></td>
+      </tr>
+      <tr>
+        <td>Distance:</td>
+        <td><input id="cpfcDist1" size=10 type="text" inputmode="decimal" value="0" style="text-align:center" onchange="updateCpfc();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();"></td>
+        <td><input id="cpfcDist2" size=10 type="text" inputmode="decimal" value="0" style="text-align:center" onchange="updateCpfc();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();"></td>
+        <td><input id="cpfcDist3" size=10 type="text" inputmode="decimal" value="0" style="text-align:center" onchange="updateCpfc();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();"></td>
+        <td><input id="cpfcDist4" size=10 type="text" inputmode="decimal" value="0" style="text-align:center" onchange="updateCpfc();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();"></td>
+        <td><input id="cpfcDist5" size=10 type="text" inputmode="decimal" value="0" style="text-align:center" onchange="updateCpfc();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();"></td>
+        <td><input id="cpfcDist6" size=10 type="text" inputmode="decimal" value="0" style="text-align:center" onchange="updateCpfc();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();"></td>        
       </tr>
     </table>
+    <table style="margin-left: auto; margin-right: auto">
+      <tr>
+        <td>Graph multiplication factor:</td>
+        <td><input id="multFactor" type="text" value="1" readonly style="text-align:center; background-color:black; color:white; border:none"></td>
+      </tr>
+      <tr>
+        <td>Each small square represents:</td>
+        <td><input id="smallSquareSize" type="text" value="2 m" readonly style="text-align:center; background-color:black; color:white; border:none"></td>
+      </tr>
+    </table>
+    <br>
+    <canvas id="cpfcCanvas" style="padding: 0; margin: auto; display: block; width: 90vw; height: 90vh;"></canvas>
     <br>
     <hr>
     <h2 style="text-align: center;">Triangle solver</h2>
